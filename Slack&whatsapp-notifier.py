@@ -24,6 +24,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 
 # DEFINING FUNCTIONS
+
 # Load environment variables
 def load_environment():
     env_path = Path('.') / '.env'
