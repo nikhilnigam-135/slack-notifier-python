@@ -1,36 +1,17 @@
 # IMPORTING LIBRARIES
-# To connnect my code with SQL database
 import mysql.connector
-
-# To send whatsapp message through Whatsapp application
 import pywhatkit
-
-# To extract current time
 import time
-
-# To send message through slack API
 import slack
-
-# To load environment variables
 import os
-
-# To extract data from json file
 import json
-
-# To extract path
 from pathlib import Path
-
-# To load environment variables
 from dotenv import load_dotenv
 
 # DEFINING FUNCTIONS
-
-# Load environment variables
 def load_environment():
     env_path = Path('.') / '.env'
     load_dotenv(dotenv_path=env_path)
-
-# Connect to the SQL
 def get_db_connection():
     try:
         conn = mysql.connector.connect(
@@ -42,8 +23,6 @@ def get_db_connection():
     except mysql.connector.Error as err:
         print(f"Error: {err}")
 
-
-# Extracting data from json file
 def extracting_data_from_json():
     with open("data.json", "r") as json_file:
         loaded_data = json.load(json_file)
@@ -67,8 +46,6 @@ def if_type_threshold(i, loaded_data):
     time_column = loaded_data[i]['queries']['time_column']
     return database_name, table_name, threshold , time_column
 
-
-# Opening database
 def open_database(database_name, cursor):
     query = f"USE {database_name};"
     cursor.execute(query)
@@ -83,8 +60,6 @@ def Threshold_WHERE_statement(where_column, where_operation, where_condition, ti
     WHERE = f"WHERE {where_column} {where_operation} '{where_condition}' AND HOUR({time_column}) BETWEEN %s AND %s"
     return WHERE
 
-
-# Create query
 def Threshold_building_of_query(column_name, table_name, WHERE):
     query = f"SELECT COUNT({column_name}) FROM {table_name} {WHERE} ;"
     return query
@@ -155,9 +130,7 @@ def main():
                 result = execute_query(mycursor, query,t)
                 process_failed_transactions(result, threshold)
 
-        # Close the connection
         conn.close()
-
         # Wait for an hour before the next cycle
         time.sleep(3600)
 
