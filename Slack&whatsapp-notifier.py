@@ -24,6 +24,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 
 # DEFINING FUNCTIONS
+
 # Load environment variables
 def load_environment():
     env_path = Path('.') / '.env'
@@ -131,8 +132,8 @@ def send_whatsapp_message(message, th, tm):
 
 def main():
     while True:
+
         load_environment() #To load envirounment variables
-        
         conn = get_db_connection() # Connect to the database
         mycursor = conn.cursor()
         data= extracting_data_from_json() # Extracting data from json file
@@ -159,6 +160,7 @@ def main():
 
         # Wait for an hour before the next cycle
         time.sleep(3600)
+
 
 # CALLING MAIN FUNCTION
 if __name__ == "__main__":
