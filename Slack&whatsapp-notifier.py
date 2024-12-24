@@ -34,7 +34,7 @@ def get_db_connection():
     try:
         conn = mysql.connector.connect(
             host='localhost',
-            password='Nikhil#135',
+            password='XXXXXXXXXX',
             user='root'
         )
         return conn
@@ -117,7 +117,7 @@ def send_failed_transaction_notifications():
 def send_slack_message(message):
     client = slack.WebClient(token=os.environ.get('slack_t'))# slack_t is the token of the bot
     try:
-        client.chat_postMessage(channel='C085M7392TB', text=''.join(message))
+        client.chat_postMessage(channel='XXXXXXXXXXXX', text=''.join(message))
         print("SLACK MESSAGE IS SENT")
 
     except slack.errors.SlackApiError as e:
@@ -125,7 +125,7 @@ def send_slack_message(message):
 
 # Sending WhatsApp message
 def send_whatsapp_message(message, th, tm):
-    '''pywhatkit.sendwhatmsg("+91 9310830655", message, th, tm + 1, 15, True, 2)
+    '''pywhatkit.sendwhatmsg("+91 XXXXXXXXXX", message, th, tm + 1, 15, True, 2)
     print("WhatsApp message is sent.")
     return'''
 
