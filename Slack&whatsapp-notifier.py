@@ -10,12 +10,11 @@ from pathlib import Path
 from dotenv import load_dotenv
 
 # DEFINING FUNCTIONS
-
 def setup_logs():
     logging.basicConfig(
-        filename="app.log",  # Log file name
-        level=logging.INFO,  # Log level to capture all INFO logs and above
-        format="%(asctime)s - %(levelname)s - %(message)s",  # Log format
+        filename="app.log", 
+        level=logging.INFO, 
+        format="%(asctime)s - %(levelname)s - %(message)s",
     )
 
 def load_environment():
@@ -86,7 +85,6 @@ def execute_query(mycursor, query, t):
     result = mycursor.fetchall()[0][0]
     return result
 
-# Checking if failed transactions are more than threshold
 def if_threshold_reached(result, threshold):
     if result >= threshold:
         logging.error("ERROR CONFIRMED")
@@ -114,15 +112,15 @@ def send_slack_message(message):
     except slack.errors.SlackApiError as e:
         logging.error(f"Error sending Slack message: {e.response['error']}")
 
-# Sending WhatsApp message (commented out)
+# Sending WhatsApp message
 def send_whatsapp_message(message, th, tm):
-    number = os.getenv('MOBILE_NUMBER')
+    #number = os.getenv('MOBILE_NUMBER')
     # pywhatkit.sendwhatmsg(number, message, th, tm + 1, 15, True, 2)
     # logging.info("WhatsApp message is sent.")
     return
 
 def main():
-    setup_logs()  # Initialize logging setup
+    setup_logs()
     load_environment()
     conn = get_db_connection()
     mycursor = conn.cursor()
@@ -135,21 +133,13 @@ def main():
         query = building_of_query(target_coloumn, table_name, WHERE)
         t = time.localtime().tm_hour
         result = execute_query(mycursor, query, t)
-        
-        # Log the number of transactions
-        logging.info(f"No. of transactions in last hour are: {result}")
-        
-        # Check if threshold exists before calling if_threshold_reached
-        if 'threshold' in data[i]['queries']:
+        if data[i]['type']=='persistant' :
+            logging.info(f"No. of transactions in last hour are: {result}")
+        if data[i]['type']=='threshold':
             threshold = data[i]['queries']['threshold']
             if_threshold_reached(result, threshold)
-        else:
-            logging.info("EVERYTHING LOOKS GOOD")
-
     conn.close()
 
 # CALLING MAIN FUNCTION
 if __name__ == "__main__":
     main()
-
-
