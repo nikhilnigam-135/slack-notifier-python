@@ -1,0 +1,32 @@
+[
+    {
+    "type": "persistant",
+    "queries":  {"aggregator" : "count",
+                 "database_name" : "service_provided",
+                 "table_name" : "bbps_transactions",
+                 "time_column" : "request_time",
+                 "conditions":
+                    {
+                    "target_coloumn" : "status",
+                    "condition" : "=",   
+                    "target_value" : "FAILED" 
+                    }
+                }
+    },
+    {
+    "type": "threshold",
+    "queries":  {"aggregator" : "count",
+                    "database_name" : "service_provided",
+                    "table_name" : "bbps_transactions",
+                    "threshold" : 1,
+                    "time_column" : "request_time"   ,
+                    "conditions":
+                        {
+                        "target_coloumn" : "status",
+                        "condition" : "=",   
+                        "target_value" : "FAILED" 
+                        }
+                }   
+    }
+    
+]
