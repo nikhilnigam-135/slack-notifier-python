@@ -1,85 +1,93 @@
 # IMPORTING LIBRARIES
+
+# To connnect my code with SQL database
 import mysql.connector
+
+# To send whatsapp message through Whatsapp application
 import pywhatkit
+
+# To extract current time
 import time
+
+# To send message through slack API
 import slack
+
+# To load environment variables
 import os
+
+# To extract data from json file
 import json
-import logging
+
+# To extract path
 from pathlib import Path
+
+# To load environment variables
 from dotenv import load_dotenv
 
 # DEFINING FUNCTIONS
+
 # Load environment variables
 def load_environment():
-    try:
-        env_path = Path('C:/Users/nikhil.nigam/Desktop/python-2/.env')
-        load_dotenv(dotenv_path=env_path)
-    except Exception as e: 
-        logging.error(f"Error loading .env file: {e}")
-        raise
+    env_path = Path('.') / '.env'
+    load_dotenv(dotenv_path=env_path)
 
-def setup_logs():
-    logging.getLogger('mysql.connector').setLevel(logging.WARNING)
-    logging.basicConfig(
-        filename=os.getenv('LOG_LOCATION'), 
-        level=logging.INFO, 
-        format="%(asctime)s - %(levelname)s - %(message)s",
-    )
-
+# Connect to the SQL
 def get_db_connection():
     try:
-        load_environment()
-        host = os.getenv('MYSQL_HOST')
-        user = os.getenv('MYSQL_USER')
-        password = os.getenv('MYSQL_PASSWORD')
-        if not host or not user or not password:
-            raise ValueError("Missing MySQL connection details in .env file")
-        conn = mysql.connector.connect(host=host, user=user, password=password)
+        conn = mysql.connector.connect(
+            host='localhost',
+            password='Nikhil#135',
+            user='root'
+        )
         return conn
     except mysql.connector.Error as err:
-        logging.error(f"MySQL error: {err}")
-    except ValueError as e:
-        logging.error(f"ValueError: {e}")
-    except Exception as e:
-        logging.error(f"An unexpected error occurred: {e}")
+        print(f"Error: {err}")
 
+
+# Extracting data from json file
 def extracting_data_from_json():
-    try:
-        with open(os.getenv('JSON_LOCATION'), "r") as json_file:
-            loaded_data = json.load(json_file)
-        return loaded_data
-    except FileNotFoundError:
-        print("Error: The file 'data.json' was not found.")
-        logging.error("Error: The file 'data.json' was not found.")
-    except json.JSONDecodeError:
-        print("Error: Failed to decode JSON from the file.")
-        logging.error("Error: Failed to decode JSON from the file.")
-    except Exception as e:
-        print(f"An unexpected error occurred: {e}")
-        logging.error(f"An unexpected error occurred: {e}")
+    with open("data.json", "r") as json_file:
+        loaded_data = json.load(json_file)
+    return (loaded_data)
 
-def required_field_json(i, loaded_data):
-    database_name = loaded_data[i]['queries']['database_name']
+# If the type of data is persistant
+def if_type_persistant(i,loaded_data):
+    database_name = (loaded_data[i]['queries']['database_name'])
     table_name = loaded_data[i]['queries']['table_name']
     target_coloumn = loaded_data[i]['queries']['conditions']['target_coloumn']
     condition = loaded_data[i]['queries']['conditions']['condition']
     target_value = loaded_data[i]['queries']['conditions']['target_value']
     time_column = loaded_data[i]['queries']['time_column']
-    return database_name, table_name, time_column, target_coloumn, condition, target_value
+    return database_name, table_name, target_coloumn, condition, target_value, time_column
 
+# If the type of data is threshold
+def if_type_threshold(i, loaded_data):
+    database_name = loaded_data[i]['queries']['database_name']
+    table_name = loaded_data[i]['queries']['table_name']
+    threshold = loaded_data[i]['queries']['threshold']
+    time_column = loaded_data[i]['queries']['time_column']
+    return database_name, table_name, threshold , time_column
+
+
+# Opening database
 def open_database(database_name, cursor):
     query = f"USE {database_name};"
     cursor.execute(query)
 
-def where_statement(where_column, where_operation, where_condition, time_column):
-    where_clause = f"""WHERE {where_column} {where_operation} '{where_condition}' 
-                   AND HOUR({time_column}) 
-                   BETWEEN %s AND %s"""
-    return where_clause
+# If type is Persistant, Building of query
+def Persistant_building_of_query(column_name, table_name, time_column):
+    query = f"SELECT COUNT({column_name}) FROM {table_name} WHERE HOUR({time_column}) BETWEEN %s AND %s;;"
+    return query
 
-def building_of_query(column_name, table_name, where_clause):
-    query = f"SELECT COUNT({column_name}) FROM {table_name} {where_clause};"
+# If type is Threshold, Building of where statement 
+def Threshold_WHERE_statement(where_column, where_operation, where_condition, time_column):
+    WHERE = f"WHERE {where_column} {where_operation} '{where_condition}' AND HOUR({time_column}) BETWEEN %s AND %s"
+    return WHERE
+
+
+# Create query
+def Threshold_building_of_query(column_name, table_name, WHERE):
+    query = f"SELECT COUNT({column_name}) FROM {table_name} {WHERE} ;"
     return query
 
 # Execute query and return No. of transactions in last hour
@@ -88,60 +96,72 @@ def execute_query(mycursor, query, t):
     result = mycursor.fetchall()[0][0]
     return result
 
-def if_threshold_reached(result, threshold):
-    if result >= threshold:
-        logging.error("ERROR CONFIRMED")
-        send_notifications()
+# Checking if failed transactions are more than threshold
+def process_failed_transactions(result,y):
+    if result >= y:
+        print("ERROR CONFIRMED")
+        send_failed_transaction_notifications()
     else:
-        logging.info("Threshold not reached")
+        print("EVERYTHING LOOKS GOOD")
 
 # Read data from another file which is to be sent as a notification
 def message_extraction():
-    with open('SLACK Template', 'r') as f:
-        read = f.readlines()
+    f=open('SLACK Template','r')
+    read=f.readlines()
     return read
 
 # If transactions are more than threshold, send notifications
-def send_notifications():
+def send_failed_transaction_notifications():
     send_slack_message(message_extraction())
-    send_whatsapp_message(message_extraction(), time.localtime().tm_hour, time.localtime().tm_min)
+    send_whatsapp_message("MULTIPLE FAILED TRANSACTIONS ERROR!", time.localtime().tm_hour, time.localtime().tm_min)
 
 # Slack client setup and sending message
 def send_slack_message(message):
-    client = slack.WebClient(token=os.environ.get('slack_t'))  # slack_t is the token of the bot
+    client = slack.WebClient(token=os.environ.get('slack_t'))# slack_t is the token of the bot
     try:
         client.chat_postMessage(channel='C085M7392TB', text=''.join(message))
-        logging.info("SLACK MESSAGE IS SENT")
+        print("SLACK MESSAGE IS SENT")
+
     except slack.errors.SlackApiError as e:
-        logging.error(f"Error sending Slack message: {e.response['error']}")
+        print(f"Error sending Slack message: {e.response['error']}")
 
 # Sending WhatsApp message
 def send_whatsapp_message(message, th, tm):
-    # number = os.getenv('MOBILE_NUMBER')
-    # pywhatkit.sendwhatmsg(number, message, th, tm + 1, 15, True, 2)
-    # logging.info("WhatsApp message is sent.")
-    return
+    '''pywhatkit.sendwhatmsg("+91 9310830655", message, th, tm + 1, 15, True, 2)
+    print("WhatsApp message is sent.")
+    return'''
 
 def main():
-    load_environment()
-    setup_logs()
-    conn = get_db_connection()
-    mycursor = conn.cursor()
-    data = extracting_data_from_json()
-    
-    for i in range(len(data)):
-        database_name, table_name, time_column, target_coloumn, condition, target_value = required_field_json(i, data)
-        open_database(database_name, mycursor)
-        where_clause = where_statement(target_coloumn, condition, target_value, time_column)
-        query = building_of_query(target_coloumn, table_name, where_clause)
-        t = time.localtime().tm_hour
-        result = execute_query(mycursor, query, t)
-        if data[i]['type']=='persistant' :
-            logging.info(f"No. of transactions in last hour are: {result}")
-        if data[i]['type']=='threshold':
-            threshold = data[i]['queries']['threshold']
-            if_threshold_reached(result, threshold)
-    conn.close()
+    while True:
+
+        load_environment() #To load envirounment variables
+        conn = get_db_connection() # Connect to the database
+        mycursor = conn.cursor()
+        data= extracting_data_from_json() # Extracting data from json file
+        for i in range (0,len(data)):
+            if (data[i]['type']=="persistant"):
+                database_name, table_name, target_coloumn, condition, target_value, time_column = if_type_persistant(i, data)
+                open_database(database_name, mycursor) # Opening of database
+                query = Persistant_building_of_query(target_coloumn, table_name, time_column)
+                t=time.localtime().tm_hour #To get current time
+                result = execute_query(mycursor, query,t)
+                print("NO. of transactions in last hour are:", result)
+                
+            elif (data[i]['type']=='threshold'):
+                database_name, table_name, threshold, time_column = if_type_threshold(i, data)
+                open_database(database_name, mycursor) # Opening of database   
+                WHERE = Threshold_WHERE_statement(target_coloumn, condition, target_value, time_column)
+                query = Threshold_building_of_query(target_coloumn, table_name, WHERE)
+                t=time.localtime().tm_hour #To get current time
+                result = execute_query(mycursor, query,t)
+                process_failed_transactions(result, threshold)
+
+        # Close the connection
+        conn.close()
+
+        # Wait for an hour before the next cycle
+        time.sleep(3600)
+
 
 # CALLING MAIN FUNCTION
 if __name__ == "__main__":
