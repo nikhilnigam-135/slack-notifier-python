@@ -10,20 +10,21 @@ from pathlib import Path
 from dotenv import load_dotenv
 
 # DEFINING FUNCTIONS
+def load_environment():
+    try:
+        env_path = Path('C:/Users/nikhil.nigam/Desktop/python-2/.env')
+        load_dotenv(dotenv_path=env_path)
+    except Exception as e: 
+        logging.error(f"Error loading .env file: {e}")
+        raise
+
 def setup_logs():
+    logging.getLogger('mysql.connector').setLevel(logging.WARNING)
     logging.basicConfig(
-        filename="app.log", 
+        filename=os.getenv('LOG_LOCATION'), 
         level=logging.INFO, 
         format="%(asctime)s - %(levelname)s - %(message)s",
     )
-
-def load_environment():
-    try:
-        env_path = Path('.') / '.env'
-        load_dotenv(dotenv_path=env_path)
-    except Exception as e:
-        logging.error(f"Error loading .env file: {e}")
-        raise
 
 def get_db_connection():
     try:
@@ -34,7 +35,6 @@ def get_db_connection():
         if not host or not user or not password:
             raise ValueError("Missing MySQL connection details in .env file")
         conn = mysql.connector.connect(host=host, user=user, password=password)
-        logging.info("Connected to MySQL database!")
         return conn
     except mysql.connector.Error as err:
         logging.error(f"MySQL error: {err}")
@@ -45,7 +45,7 @@ def get_db_connection():
 
 def extracting_data_from_json():
     try:
-        with open("data.json", "r") as json_file:
+        with open(os.getenv('JSON_LOCATION'), "r") as json_file:
             loaded_data = json.load(json_file)
         return loaded_data
     except FileNotFoundError:
@@ -72,11 +72,13 @@ def open_database(database_name, cursor):
     cursor.execute(query)
 
 def where_statement(where_column, where_operation, where_condition, time_column):
-    WHERE = f"WHERE {where_column} {where_operation} '{where_condition}' AND HOUR({time_column}) BETWEEN %s AND %s"
-    return WHERE
+    where_clause = f"""WHERE {where_column} {where_operation} '{where_condition}' 
+                   AND HOUR({time_column}) 
+                   BETWEEN %s AND %s"""
+    return where_clause
 
-def building_of_query(column_name, table_name, WHERE):
-    query = f"SELECT COUNT({column_name}) FROM {table_name} {WHERE};"
+def building_of_query(column_name, table_name, where_clause):
+    query = f"SELECT COUNT({column_name}) FROM {table_name} {where_clause};"
     return query
 
 # Execute query and return No. of transactions in last hour
@@ -90,7 +92,7 @@ def if_threshold_reached(result, threshold):
         logging.error("ERROR CONFIRMED")
         send_notifications()
     else:
-        logging.info("EVERYTHING LOOKS GOOD")
+        logging.info("Threshold not reached")
 
 # Read data from another file which is to be sent as a notification
 def message_extraction():
@@ -114,14 +116,14 @@ def send_slack_message(message):
 
 # Sending WhatsApp message
 def send_whatsapp_message(message, th, tm):
-    #number = os.getenv('MOBILE_NUMBER')
+    # number = os.getenv('MOBILE_NUMBER')
     # pywhatkit.sendwhatmsg(number, message, th, tm + 1, 15, True, 2)
     # logging.info("WhatsApp message is sent.")
     return
 
 def main():
-    setup_logs()
     load_environment()
+    setup_logs()
     conn = get_db_connection()
     mycursor = conn.cursor()
     data = extracting_data_from_json()
@@ -129,8 +131,8 @@ def main():
     for i in range(len(data)):
         database_name, table_name, time_column, target_coloumn, condition, target_value = required_field_json(i, data)
         open_database(database_name, mycursor)
-        WHERE = where_statement(target_coloumn, condition, target_value, time_column)
-        query = building_of_query(target_coloumn, table_name, WHERE)
+        where_clause = where_statement(target_coloumn, condition, target_value, time_column)
+        query = building_of_query(target_coloumn, table_name, where_clause)
         t = time.localtime().tm_hour
         result = execute_query(mycursor, query, t)
         if data[i]['type']=='persistant' :
