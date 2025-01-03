@@ -12,7 +12,7 @@ from dotenv import load_dotenv
 # DEFINING FUNCTIONS
 def load_environment():
     try:
-        env_path = Path('C:/Desktop/python/.env')
+        env_path = Path('.env.txt')
         load_dotenv(dotenv_path=env_path)
     except Exception as e: 
         logging.error(f"Error loading .env file: {e}")
@@ -27,7 +27,6 @@ def setup_logs():
 
 def get_db_connection():
     try:
-        load_environment()
         host = os.getenv('MYSQL_HOST')
         user = os.getenv('MYSQL_USER')
         password = os.getenv('MYSQL_PASSWORD')
@@ -50,10 +49,8 @@ def extracting_data_from_json():
     except FileNotFoundError:
         logging.error("Error: The file 'data.json' was not found.")
     except json.JSONDecodeError:
-        print("Error: Failed to decode JSON from the file.")
         logging.error("Error: Failed to decode JSON from the file.")
     except Exception as e:
-        print(f"An unexpected error occurred: {e}")
         logging.error(f"An unexpected error occurred: {e}")
 
 def required_field_json(i, loaded_data):
@@ -75,7 +72,7 @@ def where_statement(where_column, where_operation, where_condition, time_column)
                    BETWEEN %s AND %s"""
     return where_clause
 
-def building_of_query(column_name, table_name, where_clause):
+def construction_of_query(column_name, table_name, where_clause):
     query = f"SELECT COUNT({column_name}) FROM {table_name} {where_clause};"
     return query
 
@@ -89,8 +86,6 @@ def if_threshold_reached(result, threshold):
     if result >= threshold:
         logging.error("ERROR CONFIRMED")
         send_notifications()
-    else:
-        logging.info("Threshold not reached")
 
 # Read data from another file which is to be sent as a notification
 def message_extraction():
@@ -110,13 +105,13 @@ def send_slack_message(message):
         client.chat_postMessage(channel='C085M7392TB', text=''.join(message))
         logging.info("SLACK MESSAGE IS SENT")
     except slack.errors.SlackApiError as e:
-        logging.error(f"Error sending Slack message: {e.response['error']}")
+        logging.error(f"Error sending Slack message: {e.response['error']}, Message which was not able to send was",message)
 
 # Sending WhatsApp message
 def send_whatsapp_message(message, th, tm):
-    # number = os.getenv('MOBILE_NUMBER')
-    # pywhatkit.sendwhatmsg(number, message, th, tm + 1, 15, True, 2)
-    # logging.info("WhatsApp message is sent.")
+    number = os.getenv('MOBILE_NUMBER')
+    pywhatkit.sendwhatmsg(number, message, th, tm + 1, 15, True, 2)
+    logging.info("WhatsApp message is sent.")
     return
 
 def main():
@@ -129,7 +124,7 @@ def main():
         database_name,table_name,time_column,target_coloumn,condition,target_value=required_field_json(i, data)
         open_database(database_name, mycursor)
         where_clause = where_statement(target_coloumn, condition, target_value, time_column)
-        query = building_of_query(target_coloumn, table_name, where_clause)
+        query = construction_of_query(target_coloumn, table_name, where_clause)
         t = time.localtime().tm_hour
         result = execute_query(mycursor, query, t)
         if data[i]['type']=='persistant' :
