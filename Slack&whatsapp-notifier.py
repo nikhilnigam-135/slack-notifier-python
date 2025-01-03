@@ -72,7 +72,7 @@ def where_statement(where_column, where_operation, where_condition, time_column)
                    BETWEEN %s AND %s"""
     return where_clause
 
-def construction_of_query(column_name, table_name, where_clause):
+def query_builder(column_name, table_name, where_clause):
     query = f"SELECT COUNT({column_name}) FROM {table_name} {where_clause};"
     return query
 
@@ -88,10 +88,15 @@ def if_threshold_reached(result, threshold):
         send_notifications()
 
 # Read data from another file which is to be sent as a notification
-def message_extraction():
-    with open('SLACK Template', 'r') as f:
+def message_extraction(result, table_name, t):
+    with open('SLACK_Template', 'r') as f:
         read = f.readlines()
-    return read
+    # Replace placeholders in the message template
+    message = ''.join(read)
+    message = message.replace("{count}", str(result))
+    message = message.replace("{table name}", table_name)
+    message = message.replace("{time}", str(t))
+    return message
 
 # If transactions are more than threshold, send notifications
 def send_notifications():
@@ -105,7 +110,7 @@ def send_slack_message(message):
         client.chat_postMessage(channel='C085M7392TB', text=''.join(message))
         logging.info("SLACK MESSAGE IS SENT")
     except slack.errors.SlackApiError as e:
-        logging.error(f"Error sending Slack message: {e.response['error']}, Message which was not able to send was",message)
+        logging.error(f"Error sending Slack message: {e.response['error']}, message: {message} ")
 
 # Sending WhatsApp message
 def send_whatsapp_message(message, th, tm):
@@ -124,7 +129,7 @@ def main():
         database_name,table_name,time_column,target_coloumn,condition,target_value=required_field_json(i, data)
         open_database(database_name, mycursor)
         where_clause = where_statement(target_coloumn, condition, target_value, time_column)
-        query = construction_of_query(target_coloumn, table_name, where_clause)
+        query = query_builder(target_coloumn, table_name, where_clause)
         t = time.localtime().tm_hour
         result = execute_query(mycursor, query, t)
         if data[i]['type']=='persistant' :
