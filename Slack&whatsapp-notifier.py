@@ -48,7 +48,6 @@ def extracting_data_from_json():
             loaded_data = json.load(json_file)
         return loaded_data
     except FileNotFoundError:
-        print("Error: The file 'data.json' was not found.")
         logging.error("Error: The file 'data.json' was not found.")
     except json.JSONDecodeError:
         print("Error: Failed to decode JSON from the file.")
