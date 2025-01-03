@@ -12,7 +12,7 @@ from dotenv import load_dotenv
 # DEFINING FUNCTIONS
 def load_environment():
     try:
-        env_path = Path('C:/Users/nikhil.nigam/Desktop/python-2/.env')
+        env_path = Path('C:/Desktop/python/.env')
         load_dotenv(dotenv_path=env_path)
     except Exception as e: 
         logging.error(f"Error loading .env file: {e}")
