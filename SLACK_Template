@@ -1,1 +1,1 @@
-{count} failed transaction for {table name} in {time}
+{count} failed transaction for {table name} at {time}

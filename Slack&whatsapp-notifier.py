@@ -77,6 +77,7 @@ def query_builder(column_name, table_name, where_clause):
     return query
 
 # Execute query and return No. of transactions in last hour
+# To Do: move time to .env file
 def execute_query(mycursor, query, t):
     mycursor.execute(query, (t, t))
     result = mycursor.fetchall()[0][0]
@@ -88,6 +89,7 @@ def if_threshold_reached(result, threshold):
         send_notifications()
 
 # Read data from another file which is to be sent as a notification
+#TO do, improve template replacement method
 def message_extraction(result, table_name, t):
     with open('SLACK_Template', 'r') as f:
         read = f.readlines()
