@@ -10,7 +10,6 @@ from pathlib import Path
 from dotenv import load_dotenv
 
 # DEFINING FUNCTIONS
-# Load environment variables
 def load_environment():
     try:
         env_path = Path('C:/Users/nikhil.nigam/Desktop/python-2/.env')
@@ -24,8 +23,7 @@ def setup_logs():
     logging.basicConfig(
         filename=os.getenv('LOG_LOCATION'), 
         level=logging.INFO, 
-        format="%(asctime)s - %(levelname)s - %(message)s",
-    )
+        format="%(asctime)s - %(levelname)s - %(message)s",)
 
 def get_db_connection():
     try:
@@ -128,9 +126,8 @@ def main():
     conn = get_db_connection()
     mycursor = conn.cursor()
     data = extracting_data_from_json()
-    
     for i in range(len(data)):
-        database_name, table_name, time_column, target_coloumn, condition, target_value = required_field_json(i, data)
+        database_name,table_name,time_column,target_coloumn,condition,target_value=required_field_json(i, data)
         open_database(database_name, mycursor)
         where_clause = where_statement(target_coloumn, condition, target_value, time_column)
         query = building_of_query(target_coloumn, table_name, where_clause)
